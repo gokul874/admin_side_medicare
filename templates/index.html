@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Provider Network Optimization{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Hero Section -->
+        <div class="jumbotron bg-gradient p-5 rounded-3 mb-5">
+            <div class="text-center">
+                <h1 class="display-4 fw-bold">
+                    <i data-feather="activity" class="me-3"></i>
+                    Provider Network Optimization
+                </h1>
+                <p class="lead mb-4">
+                    Optimize your healthcare provider network with advanced geospatial analysis, 
+                    cost optimization, and comprehensive reporting.
+                </p>
+                <a href="{{ url_for('upload_page') }}" class="btn btn-primary btn-lg">
+                    <i data-feather="upload" class="me-2"></i>
+                    Get Started
+                </a>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="row mb-5">
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="feature-icon mb-3">
+                            <i data-feather="upload" size="48" class="text-primary"></i>
+                        </div>
+                        <h5 class="card-title">Upload Datasets</h5>
+                        <p class="card-text">
+                            Upload member and provider CSV datasets with automatic data validation 
+                            and cleaning. Supports large datasets with comprehensive error handling.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="feature-icon mb-3">
+                            <i data-feather="zap" size="48" class="text-success"></i>
+                        </div>
+                        <h5 class="card-title">Smart Optimization</h5>
+                        <p class="card-text">
+                            Advanced optimization algorithm considers provider ratings, costs, and distances 
+                            to find the best provider matches within a 15km radius.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="feature-icon mb-3">
+                            <i data-feather="map" size="48" class="text-info"></i>
+                        </div>
+                        <h5 class="card-title">Interactive Visualization</h5>
+                        <p class="card-text">
+                            Comprehensive dashboard with interactive maps, charts, and detailed reports 
+                            showing network performance and optimization results.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Process Steps -->
+        <div class="row">
+            <div class="col-12">
+                <h2 class="text-center mb-4">Optimization Process</h2>
+                <div class="row">
+                    <div class="col-md-3 mb-4">
+                        <div class="text-center">
+                            <div class="process-step mb-3">
+                                <span class="badge bg-primary rounded-circle p-3">1</span>
+                            </div>
+                            <h6>Upload Data</h6>
+                            <p class="text-muted small">
+                                Upload member and provider CSV files with validation
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="text-center">
+                            <div class="process-step mb-3">
+                                <span class="badge bg-primary rounded-circle p-3">2</span>
+                            </div>
+                            <h6>Find Connections</h6>
+                            <p class="text-muted small">
+                                Identify providers within 15km radius with matching types
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="text-center">
+                            <div class="process-step mb-3">
+                                <span class="badge bg-primary rounded-circle p-3">3</span>
+                            </div>
+                            <h6>Optimize Assignments</h6>
+                            <p class="text-muted small">
+                                Select best providers based on rating, cost, and distance
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="text-center">
+                            <div class="process-step mb-3">
+                                <span class="badge bg-primary rounded-circle p-3">4</span>
+                            </div>
+                            <h6>Analyze Results</h6>
+                            <p class="text-muted small">
+                                Review optimization metrics and network performance
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i data-feather="target" class="me-2"></i>
+                            Key Optimization Criteria
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6 class="text-primary">High Rating Priority</h6>
+                                <p class="text-muted small">
+                                    Providers with higher CMS ratings (1-5) are prioritized 
+                                    to ensure quality care for members.
+                                </p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-success">Low Cost Optimization</h6>
+                                <p class="text-muted small">
+                                    Among high-rated providers, those with lower costs 
+                                    are selected to optimize network expenses.
+                                </p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-info">Shortest Distance</h6>
+                                <p class="text-muted small">
+                                    When rating and cost are equal, the nearest provider 
+                                    is chosen for member convenience.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

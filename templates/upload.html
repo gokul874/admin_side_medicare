@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Data - Provider Network Optimization{% endblock %}
+
+{% block extra_head %}
+<style>
+.upload-zone {
+    border: 2px dashed var(--bs-border-color);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.upload-zone:hover {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.upload-zone.dragover {
+    border-color: var(--bs-success);
+    background-color: var(--bs-success-bg-subtle);
+}
+
+.file-info {
+    font-size: 0.875rem;
+    color: var(--bs-secondary);
+}
+
+.progress {
+    height: 8px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i data-feather="upload" class="me-2"></i>
+                Dataset Upload
+            </h2>
+            <div>
+                <button id="optimizeBtn" class="btn btn-success" disabled>
+                    <i data-feather="zap" class="me-2"></i>
+                    Optimize Network
+                </button>
+            </div>
+        </div>
+
+        <!-- Upload Status -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i data-feather="users" class="me-2"></i>
+                            Members Dataset
+                        </h6>
+                        <div id="membersStatus" class="mb-3">
+                            <span class="badge bg-secondary">Not Uploaded</span>
+                        </div>
+                        <div class="upload-zone" data-type="members">
+                            <i data-feather="upload-cloud" size="48" class="text-muted mb-3"></i>
+                            <p class="mb-2">Drop members CSV file here or click to browse</p>
+                            <p class="file-info mb-0">
+                                Required: MemberID, SourceType, Latitude, Longitude, cost
+                            </p>
+                        </div>
+                        <input type="file" id="membersFile" class="d-none" accept=".csv">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i data-feather="map-pin" class="me-2"></i>
+                            Providers Dataset
+                        </h6>
+                        <div id="providersStatus" class="mb-3">
+                            <span class="badge bg-secondary">Not Uploaded</span>
+                        </div>
+                        <div class="upload-zone" data-type="providers">
+                            <i data-feather="upload-cloud" size="48" class="text-muted mb-3"></i>
+                            <p class="mb-2">Drop providers CSV file here or click to browse</p>
+                            <p class="file-info mb-0">
+                                Required: ProviderID, Source, Location, Type, Latitude, Longitude, CMS Rating, Cost
+                            </p>
+                        </div>
+                        <input type="file" id="providersFile" class="d-none" accept=".csv">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Progress -->
+        <div id="uploadProgress" class="card mb-4" style="display: none;">
+            <div class="card-body">
+                <h6 class="card-title">Upload Progress</h6>
+                <div class="progress mb-2">
+                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <div id="progressText" class="text-muted small">Preparing upload...</div>
+            </div>
+        </div>
+
+        <!-- Optimization Progress -->
+        <div id="optimizationProgress" class="card mb-4" style="display: none;">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i data-feather="zap" class="me-2"></i>
+                    Network Optimization in Progress
+                </h6>
+                <div class="progress mb-2">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                </div>
+                <div id="optimizationText" class="text-muted small">
+                    <i data-feather="clock" class="me-1"></i>
+                    Analyzing provider-member connections and optimizing assignments...
+                </div>
+            </div>
+        </div>
+
+        <!-- Previous Uploads -->
+        {% if datasets %}
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i data-feather="database" class="me-2"></i>
+                    Previous Uploads
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Dataset Type</th>
+                                <th>Filename</th>
+                                <th>Records</th>
+                                <th>Upload Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dataset in datasets %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-{{ 'primary' if dataset.file_type == 'members' else 'success' }}">
+                                        {{ dataset.file_type.title() }}
+                                    </span>
+                                </td>
+                                <td>{{ dataset.name }}</td>
+                                <td>{{ dataset.record_count|default('-', true) }}</td>
+                                <td>{{ dataset.upload_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if dataset.is_processed %}
+                                        <span class="badge bg-success">Processed</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Processing</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Optimization Requirements Modal -->
+<div class="modal fade" id="optimizationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i data-feather="zap" class="me-2"></i>
+                    Start Network Optimization
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>The optimization process will:</p>
+                <ul>
+                    <li>Find providers within 15km radius for each member</li>
+                    <li>Match providers based on source type compatibility</li>
+                    <li>Select best providers using: High Rating → Low Cost → Shortest Distance</li>
+                    <li>Calculate access percentages and network feasibility</li>
+                    <li>Generate comprehensive reports and visualizations</li>
+                </ul>
+                <div class="alert alert-info">
+                    <i data-feather="info" class="me-2"></i>
+                    This process may take several minutes for large datasets.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="startOptimization" class="btn btn-success">
+                    <i data-feather="play" class="me-2"></i>
+                    Start Optimization
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let uploadedDatasets = {
+        members: false,
+        providers: false
+    };
+
+    // File upload handling
+    const setupFileUpload = (type) => {
+        const uploadZone = document.querySelector(`[data-type="${type}"]`);
+        const fileInput = document.querySelector(`#${type}File`);
+        const statusElement = document.querySelector(`#${type}Status`);
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                uploadFile(type, fileInput.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                uploadFile(type, e.target.files[0]);
+            }
+        });
+    };
+
+    const uploadFile = async (type, file) => {
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            showAlert('Please select a CSV file.', 'danger');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('dataset_type', type);
+
+        const progressElement = document.getElementById('uploadProgress');
+        const progressBar = progressElement.querySelector('.progress-bar');
+        const progressText = document.getElementById('progressText');
+        const statusElement = document.querySelector(`#${type}Status`);
+
+        progressElement.style.display = 'block';
+        progressText.textContent = `Uploading ${type} dataset...`;
+        progressBar.style.width = '50%';
+
+        try {
+            const response = await fetch('/upload_dataset', {
+                method: 'POST',
+                body: formData
+            });
+
+            progressBar.style.width = '100%';
+            const result = await response.json();
+
+            if (response.ok) {
+                uploadedDatasets[type] = true;
+                statusElement.innerHTML = `<span class="badge bg-success">Uploaded (${result.record_count.toLocaleString()} records)</span>`;
+                showAlert(result.message, 'success');
+                checkOptimizationReady();
+            } else {
+                statusElement.innerHTML = `<span class="badge bg-danger">Upload Failed</span>`;
+                showAlert(result.error, 'danger');
+            }
+        } catch (error) {
+            statusElement.innerHTML = `<span class="badge bg-danger">Upload Failed</span>`;
+            showAlert(`Upload failed: ${error.message}`, 'danger');
+        } finally {
+            setTimeout(() => {
+                progressElement.style.display = 'none';
+                progressBar.style.width = '0%';
+            }, 2000);
+        }
+    };
+
+    const checkOptimizationReady = () => {
+        const optimizeBtn = document.getElementById('optimizeBtn');
+        if (uploadedDatasets.members && uploadedDatasets.providers) {
+            optimizeBtn.disabled = false;
+            optimizeBtn.classList.remove('btn-outline-success');
+            optimizeBtn.classList.add('btn-success');
+        }
+    };
+
+    const showAlert = (message, type) => {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('.container');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    };
+
+    // Setup file uploads
+    setupFileUpload('members');
+    setupFileUpload('providers');
+
+    // Optimization handling
+    document.getElementById('optimizeBtn').addEventListener('click', () => {
+        const modal = new bootstrap.Modal(document.getElementById('optimizationModal'));
+        modal.show();
+    });
+
+    document.getElementById('startOptimization').addEventListener('click', async () => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('optimizationModal'));
+        modal.hide();
+
+        const progressElement = document.getElementById('optimizationProgress');
+        const optimizationText = document.getElementById('optimizationText');
+        
+        progressElement.style.display = 'block';
+        optimizationText.innerHTML = `
+            <i data-feather="clock" class="me-1"></i>
+            Analyzing provider-member connections and optimizing assignments...
+        `;
+        feather.replace();
+
+        try {
+            const response = await fetch('/optimize_network', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                optimizationText.innerHTML = `
+                    <i data-feather="check-circle" class="me-1 text-success"></i>
+                    Optimization completed! Access: ${result.access_percentage.toFixed(2)}%, 
+                    Served: ${result.served_members}/${result.total_members} members
+                `;
+                feather.replace();
+                
+                setTimeout(() => {
+                    window.location.href = result.redirect;
+                }, 2000);
+            } else {
+                optimizationText.innerHTML = `
+                    <i data-feather="x-circle" class="me-1 text-danger"></i>
+                    Optimization failed: ${result.error}
+                `;
+                feather.replace();
+                showAlert(result.error, 'danger');
+            }
+        } catch (error) {
+            optimizationText.innerHTML = `
+                <i data-feather="x-circle" class="me-1 text-danger"></i>
+                Optimization failed: ${error.message}
+            `;
+            feather.replace();
+            showAlert(`Optimization failed: ${error.message}`, 'danger');
+        }
+    });
+
+    // Initialize feather icons
+    feather.replace();
+});
+</script>
+{% endblock %}

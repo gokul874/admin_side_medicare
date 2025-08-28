@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Provider Network Optimization{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i data-feather="bar-chart-2" class="me-2"></i>
+                Optimization Dashboard
+            </h2>
+            <div>
+                <a href="{{ url_for('visualization') }}" class="btn btn-info me-2">
+                    <i data-feather="map" class="me-2"></i>
+                    View Map
+                </a>
+                <a href="{{ url_for('download_unused_providers') }}" class="btn btn-secondary">
+                    <i data-feather="download" class="me-2"></i>
+                    Download Unused Providers
+                </a>
+            </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title text-muted">Access Percentage</h6>
+                                <h3 class="mb-0">{{ "%.2f"|format(result.access_percentage) }}%</h3>
+                            </div>
+                            <div class="text-primary">
+                                <i data-feather="users" size="32"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            {% if result.access_percentage == 100 %}
+                                <span class="badge bg-success">Perfect Access</span>
+                            {% elif result.access_percentage >= 95 %}
+                                <span class="badge bg-success">Good Access</span>
+                            {% else %}
+                                <span class="badge bg-warning">Needs Improvement</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title text-muted">Served Members</h6>
+                                <h3 class="mb-0">{{ "{:,}".format(result.served_members) }}</h3>
+                                <small class="text-muted">of {{ "{:,}".format(result.total_members) }}</small>
+                            </div>
+                            <div class="text-success">
+                                <i data-feather="check-circle" size="32"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title text-muted">Cost Savings</h6>
+                                <h3 class="mb-0">{{ "%.1f"|format(result.profit_loss_percentage) }}%</h3>
+                                <small class="text-muted">${{ "{:,.2f}".format(result.original_cost - result.optimized_cost) }}</small>
+                            </div>
+                            <div class="text-{{ 'success' if result.profit_loss_percentage > 0 else 'danger' }}">
+                                <i data-feather="{{ 'trending-up' if result.profit_loss_percentage > 0 else 'trending-down' }}" size="32"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title text-muted">Provider Utilization</h6>
+                                <h3 class="mb-0">{{ "{:,}".format(result.used_providers) }}</h3>
+                                <small class="text-muted">of {{ "{:,}".format(result.total_providers) }} providers</small>
+                            </div>
+                            <div class="text-info">
+                                <i data-feather="map-pin" size="32"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Status -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i data-feather="activity" class="me-2"></i>
+                            Network Assessment
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h6 class="mb-2">{{ result.network_status }}</h6>
+                                {% if result.access_percentage == 100 %}
+                                    <p class="text-muted mb-0">
+                                        Excellent! Your network provides complete coverage to all members. 
+                                        All members have been successfully matched with providers within the 15km radius.
+                                    </p>
+                                {% elif result.access_percentage >= 95 %}
+                                    <p class="text-muted mb-0">
+                                        Your network is performing well with {{ "%.2f"|format(result.access_percentage) }}% member access. 
+                                        Consider minor optimizations to serve the remaining {{ "{:,}".format(result.unserved_members) }} members.
+                                    </p>
+                                {% else %}
+                                    <p class="text-muted mb-0">
+                                        Network expansion recommended. {{ "{:,}".format(result.unserved_members) }} members 
+                                        ({{ "%.1f"|format(100 - result.access_percentage) }}%) lack provider access within 15km radius.
+                                    </p>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 text-end">
+                                {% if result.access_percentage >= 95 %}
+                                    <span class="badge bg-success fs-6">✓ Network Healthy</span>
+                                {% else %}
+                                    <span class="badge bg-warning fs-6">⚠ Needs Attention</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row mb-4">
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Member Access Distribution</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="accessChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Cost Analysis</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="costChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Provider Utilization</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="providerChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Source Type Analysis</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="sourceTypeChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Analysis -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Source Type Breakdown</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if optimization_data.source_type_analysis %}
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Source Type</th>
+                                            <th>Total Members</th>
+                                            <th>Served</th>
+                                            <th>Access %</th>
+                                            <th>Avg Distance (km)</th>
+                                            <th>Avg Rating</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for source_type, analysis in optimization_data.source_type_analysis.items() %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ source_type }}</span>
+                                            </td>
+                                            <td>{{ "{:,}".format(analysis.total_members) }}</td>
+                                            <td>{{ "{:,}".format(analysis.served_members) }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ 'success' if analysis.access_percentage >= 95 else 'warning' if analysis.access_percentage >= 80 else 'danger' }}">
+                                                    {{ "%.1f"|format(analysis.access_percentage) }}%
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if analysis.average_distance is not none and not analysis.average_distance|string == 'nan' %}
+                                                    {{ "%.2f"|format(analysis.average_distance) }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if analysis.average_rating is not none and not analysis.average_rating|string == 'nan' %}
+                                                    {{ "%.2f"|format(analysis.average_rating) }}/5
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No source type analysis available.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Quick Stats</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Optimization Date:</span>
+                            <span>{{ result.created_date.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Original Cost:</span>
+                            <span>${{ "{:,.2f}".format(result.original_cost) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Optimized Cost:</span>
+                            <span>${{ "{:,.2f}".format(result.optimized_cost) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Unserved Members:</span>
+                            <span class="text-{{ 'danger' if result.unserved_members > 0 else 'success' }}">
+                                {{ "{:,}".format(result.unserved_members) }}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Unused Providers:</span>
+                            <span class="text-{{ 'warning' if result.unused_providers > 0 else 'success' }}">
+                                {{ "{:,}".format(result.unused_providers) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {% if result.unused_providers == 0 %}
+                <div class="card mt-3">
+                    <div class="card-body text-center">
+                        <i data-feather="check-circle" class="text-success mb-2" size="48"></i>
+                        <h6 class="text-success">All Providers Utilized</h6>
+                        <p class="text-muted small mb-0">
+                            Organization is working in good condition. No providers are unused.
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

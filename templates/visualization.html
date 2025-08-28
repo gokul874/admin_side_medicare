@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Visualization - Provider Network Optimization{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+#map {
+    height: 600px;
+    border-radius: 8px;
+}
+
+.legend {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.legend-item {
+    margin: 5px 0;
+    display: flex;
+    align-items: center;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 2px solid white;
+}
+
+.map-controls {
+    background: var(--bs-dark);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.filter-btn {
+    margin: 0.25rem;
+}
+
+.info-panel {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 15px;
+    border-radius: 5px;
+    max-width: 300px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i data-feather="map" class="me-2"></i>
+                Network Visualization
+            </h2>
+            <div>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                    <i data-feather="bar-chart-2" class="me-2"></i>
+                    Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Map Controls -->
+        <div class="map-controls">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h6 class="mb-2">Filter Options</h6>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <input type="checkbox" class="btn-check" id="showServedMembers" checked>
+                        <label class="btn btn-outline-success filter-btn" for="showServedMembers">
+                            <i data-feather="check-circle" class="me-1"></i>
+                            Served Members
+                        </label>
+
+                        <input type="checkbox" class="btn-check" id="showUnservedMembers" checked>
+                        <label class="btn btn-outline-danger filter-btn" for="showUnservedMembers">
+                            <i data-feather="x-circle" class="me-1"></i>
+                            Unserved Members
+                        </label>
+
+                        <input type="checkbox" class="btn-check" id="showUsedProviders" checked>
+                        <label class="btn btn-outline-primary filter-btn" for="showUsedProviders">
+                            <i data-feather="map-pin" class="me-1"></i>
+                            Used Providers
+                        </label>
+
+                        <input type="checkbox" class="btn-check" id="showUnusedProviders">
+                        <label class="btn btn-outline-warning filter-btn" for="showUnusedProviders">
+                            <i data-feather="map-pin" class="me-1"></i>
+                            Unused Providers
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-info" id="resetView">
+                            <i data-feather="refresh-cw" class="me-1"></i>
+                            Reset View
+                        </button>
+                        <button type="button" class="btn btn-outline-info" id="fitBounds">
+                            <i data-feather="maximize" class="me-1"></i>
+                            Fit All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="card">
+            <div class="card-body p-0">
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="row mt-4">
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i data-feather="users" class="text-success mb-2" size="32"></i>
+                        <h5 class="mb-1" id="servedCount">-</h5>
+                        <p class="text-muted mb-0">Served Members</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i data-feather="user-x" class="text-danger mb-2" size="32"></i>
+                        <h5 class="mb-1" id="unservedCount">-</h5>
+                        <p class="text-muted mb-0">Unserved Members</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i data-feather="map-pin" class="text-primary mb-2" size="32"></i>
+                        <h5 class="mb-1" id="usedProvidersCount">-</h5>
+                        <p class="text-muted mb-0">Used Providers</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i data-feather="circle" class="text-warning mb-2" size="32"></i>
+                        <h5 class="mb-1" id="unusedProvidersCount">-</h5>
+                        <p class="text-muted mb-0">Unused Providers</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Access Analysis -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i data-feather="pie-chart" class="me-2"></i>
+                            Geographic Access Analysis
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Network Performance</h6>
+                                <div class="progress mb-2" style="height: 20px;">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {{ result.access_percentage }}%">
+                                        {{ "%.1f"|format(result.access_percentage) }}%
+                                    </div>
+                                </div>
+                                <p class="text-muted small">
+                                    {{ "{:,}".format(result.served_members) }} of {{ "{:,}".format(result.total_members) }} 
+                                    members have provider access within 15km radius
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Network Recommendation</h6>
+                                <div class="alert alert-{{ 'success' if result.access_percentage >= 95 else 'warning' }} mb-2">
+                                    <strong>{{ result.network_status }}</strong>
+                                </div>
+                                {% if result.access_percentage < 95 %}
+                                <p class="text-muted small">
+                                    Consider adding providers in areas with high unserved member concentration 
+                                    (shown in red on the map).
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h6>Loading Map Data...</h6>
+                <p class="text-muted mb-0">Please wait while we load the visualization data.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/visualization.js') }}"></script>
+{% endblock %}
