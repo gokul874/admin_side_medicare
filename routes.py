@@ -119,7 +119,7 @@ def optimize_network():
         providers_sample = providers_df
         
         candidate_connections = optimizer.find_candidate_connections(
-            members_sample, providers_sample, geospatial, max_distance=15.0
+            members_sample, providers_sample, geospatial, max_distance=30.0
         )
         
         logger.info(f"Found {len(candidate_connections)} candidate connections")
@@ -417,3 +417,4 @@ def not_found(e):
 def internal_error(e):
     logger.error(f"Internal server error: {str(e)}")
     return render_template('500.html'), 500
+
